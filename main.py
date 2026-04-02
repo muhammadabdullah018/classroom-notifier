@@ -33,19 +33,12 @@ SEEN_IDS_FILE = "seen_ids.json"
 # ── Auth ─────────────────────────────────────────────────────────
 def get_classroom_service():
     token_data = os.getenv("GOOGLE_TOKEN")
-    creds_data = os.getenv("GOOGLE_CREDENTIALS")
 
-    if token_data:
-        creds = Credentials.from_authorized_user_info(
-            json.loads(token_data), SCOPES
-        )
-        if creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-    else:
-        flow = InstalledAppFlow.from_client_secrets_info(
-            json.loads(creds_data), SCOPES
-        )
-        creds = flow.run_local_server(port=0)
+    creds = Credentials.from_authorized_user_info(
+        json.loads(token_data), SCOPES
+    )
+    if creds.expired and creds.refresh_token:
+        creds.refresh(Request())
 
     return build("classroom", "v1", credentials=creds)
 
