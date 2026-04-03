@@ -34,13 +34,19 @@ GRADES_FILE = "grades.json"
 
 # ── Auth ─────────────────────────────────────────────────────────
 def get_classroom_service():
-    token_data = os.getenv("GOOGLE_TOKEN")
-    creds = Credentials.from_authorized_user_info(
-        json.loads(token_data), SCOPES
-    )
-    if creds.expired and creds.refresh_token:
-        creds.refresh(Request())
+    creds = None
+    if os.path.exists("token.json"):
+        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open("token.json", "w") as f:
+            f.write(creds.to_json())
     return build("classroom", "v1", credentials=creds)
+
 
 # ── Seen IDs ──────────────────────────────────────────────────────
 def load_seen_ids():
