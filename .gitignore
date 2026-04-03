@@ -3,4 +3,6 @@ venv/
 token.json
 credentials.json
 seen_ids.json
+alerts.json
+grades.json
 __pycache__/
