@@ -44,10 +44,11 @@ def get_classroom_service():
 
 # ── Seen IDs ──────────────────────────────────────────────────────
 def load_seen_ids():
-    if not os.path.exists(SEEN_IDS_FILE):
-        return set()
-    with open(SEEN_IDS_FILE, "r") as f:
-        return set(json.load(f))
+    if os.path.exists(SEEN_IDS_FILE):
+        with open(SEEN_IDS_FILE, "r") as f:
+            return set(json.load(f))
+    seen_env = os.getenv("SEEN_IDS", "[]")
+    return set(json.loads(seen_env))
 
 def save_seen_ids(seen_ids):
     with open(SEEN_IDS_FILE, "w") as f:
