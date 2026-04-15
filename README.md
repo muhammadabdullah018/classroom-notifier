@@ -107,6 +107,7 @@ runs on railway for free. never touches your laptop. just works.
 ├── 🔬 lab-tasks       ← anything with "lab" in the title
 ├── ❓ quizzes         ← MCQs and short answer questions
 └── 📌 general-updates ← daily digest + grades + urgency alerts
+├── seen_announcements.json  ← tracks notified announcements
 ```
 
 new assignment notification:
