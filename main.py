@@ -16,7 +16,8 @@ load_dotenv()
 # ── Config ──────────────────────────────────────────────────────
 SCOPES = [
     'https://www.googleapis.com/auth/classroom.courses.readonly',
-    'https://www.googleapis.com/auth/classroom.student-submissions.me.readonly'
+    'https://www.googleapis.com/auth/classroom.student-submissions.me.readonly',
+    'https://www.googleapis.com/auth/classroom.announcements.readonly'
 ]
 
 WEBHOOKS = {
@@ -29,6 +30,7 @@ WEBHOOKS = {
 
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 SEEN_IDS_FILE = "seen_ids.json"
+SEEN_ANNOUNCEMENTS_FILE = "seen_announcements.json"
 ALERTS_FILE = "alerts.json"
 GRADES_FILE = "grades.json"
 
@@ -53,6 +55,17 @@ def load_seen_ids():
 def save_seen_ids(seen_ids):
     with open(SEEN_IDS_FILE, "w") as f:
         json.dump(list(seen_ids), f)
+
+# ── Seen Announcements ───────────────────────────────────────────
+def load_seen_announcements():
+    if os.path.exists(SEEN_ANNOUNCEMENTS_FILE):
+        with open(SEEN_ANNOUNCEMENTS_FILE, "r") as f:
+            return set(json.load(f))
+    return set()
+
+def save_seen_announcements(seen_announcements):
+    with open(SEEN_ANNOUNCEMENTS_FILE, "w") as f:
+        json.dump(list(seen_announcements), f)
 
 # ── Alerts Tracking ───────────────────────────────────────────────
 def load_alerts():
@@ -493,6 +506,63 @@ def send_daily_status():
     except Exception as e:
         print(f"Daily status error: {e}")
 
+# ── Check Announcements ──────────────────────────────────────────
+def check_announcements():
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Checking announcements...")
+    seen_announcements = load_seen_announcements()
+
+    try:
+        service = get_classroom_service()
+        courses = service.courses().list(courseStates=["ACTIVE"]).execute()
+        course_list = courses.get("courses", [])
+
+        for course in course_list:
+            course_id = course["id"]
+            course_name = course["name"]
+
+            try:
+                announcements = service.courses().announcements().list(
+                    courseId=course_id,
+                    pageSize=10
+                ).execute()
+            except:
+                continue
+
+            for item in announcements.get("announcements", []):
+                ann_id = item["id"]
+                if ann_id in seen_announcements:
+                    continue
+
+                seen_announcements.add(ann_id)
+
+                text = item.get("text", "No content.")
+                if len(text) > 300:
+                    text = text[:297] + "..."
+
+                posted_by = item.get("creatorUserId", "Unknown")
+
+                embed = {
+                    "title": f"📢 New Announcement — {course_name}",
+                    "color": 3447003,
+                    "fields": [
+                        {"name": "📚 Course", "value": course_name, "inline": True},
+                        {"name": "👤 Posted By", "value": posted_by, "inline": True},
+                        {"name": "💬 Announcement", "value": text, "inline": False},
+                    ],
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+
+                try:
+                    requests.post(WEBHOOKS["DEFAULT"], json={"embeds": [embed]}, timeout=10)
+                    print(f"  Announcement posted: {course_name}")
+                except Exception as e:
+                    print(f"Announcement error: {e}")
+
+        save_seen_announcements(seen_announcements)
+
+    except Exception as e:
+        print(f"Check announcements error: {e}")
+
 # ── Core Check ────────────────────────────────────────────────────
 def check_classroom():
     print(f"[{datetime.now().strftime('%H:%M:%S')}] Checking Classroom...")
@@ -574,11 +644,13 @@ def check_classroom():
 if __name__ == "__main__":
     print("Classroom Notifier started.")
     check_classroom()
+    check_announcements()
     check_grades()
     check_urgency_alerts()
     send_daily_status()
 
     schedule.every(15).minutes.do(check_classroom)
+    schedule.every(15).minutes.do(check_announcements)
     schedule.every(15).minutes.do(check_grades)
     schedule.every(15).minutes.do(check_urgency_alerts)
     schedule.every(15).minutes.do(send_daily_status)
