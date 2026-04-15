@@ -91,6 +91,8 @@ runs on railway for free. never touches your laptop. just works.
 ✓  🚨 DUE TODAY  ⚠️ DUE SOON  📌 upcoming
 ✓  digest also shows recently graded assignments
 ✓  sends WOHOOO when nothing is due (rare but appreciated)
+✓  professor announcements — instant ping when a professor posts a notice or update
+✓  announcement text preview — shows first 300 characters directly in Discord
 
 ✓  hosted free on railway — runs 24/7 without your laptop
 ```
