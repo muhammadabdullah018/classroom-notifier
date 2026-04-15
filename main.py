@@ -517,44 +517,45 @@ def check_announcements():
         course_list = courses.get("courses", [])
 
         for course in course_list:
-            course_id = course["id"]
-            course_name = course["name"]
-
             try:
+                course_id = course["id"]
+                course_name = course["name"]
+
                 announcements = service.courses().announcements().list(
                     courseId=course_id,
                     pageSize=10
                 ).execute()
-            except:
+
+                for item in announcements.get("announcements", []):
+                    ann_id = item["id"]
+                    if ann_id in seen_announcements:
+                        continue
+
+                    seen_announcements.add(ann_id)
+
+                    text = (item.get("text", "")[:297] + "...") if len(item.get("text", "")) > 300 else item.get("text", "No content.")
+
+                    posted_by = item.get("creatorUserId", "Unknown")
+
+                    embed = {
+                        "title": f"📢 New Announcement — {course_name}",
+                        "color": 3447003,
+                        "fields": [
+                            {"name": "📚 Course", "value": course_name, "inline": True},
+                            {"name": "👤 Posted By", "value": posted_by, "inline": True},
+                            {"name": "💬 Announcement", "value": text, "inline": False},
+                        ],
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+
+                    try:
+                        requests.post(WEBHOOKS["DEFAULT"], json={"embeds": [embed]}, timeout=10)
+                        print(f"  Announcement posted: {course_name}")
+                    except Exception as e:
+                        print(f"Announcement error: {e}")
+            except Exception as e:
+                print(f"  Error checking announcements for {course.get('name', 'Unknown')}: {e}")
                 continue
-
-            for item in announcements.get("announcements", []):
-                ann_id = item["id"]
-                if ann_id in seen_announcements:
-                    continue
-
-                seen_announcements.add(ann_id)
-
-                text = (item.get("text", "")[:297] + "...") if len(item.get("text", "")) > 300 else item.get("text", "No content.")
-
-                posted_by = item.get("creatorUserId", "Unknown")
-
-                embed = {
-                    "title": f"📢 New Announcement — {course_name}",
-                    "color": 3447003,
-                    "fields": [
-                        {"name": "📚 Course", "value": course_name, "inline": True},
-                        {"name": "👤 Posted By", "value": posted_by, "inline": True},
-                        {"name": "💬 Announcement", "value": text, "inline": False},
-                    ],
-                    "timestamp": datetime.utcnow().isoformat()
-                }
-
-                try:
-                    requests.post(WEBHOOKS["DEFAULT"], json={"embeds": [embed]}, timeout=10)
-                    print(f"  Announcement posted: {course_name}")
-                except Exception as e:
-                    print(f"Announcement error: {e}")
 
         save_seen_announcements(seen_announcements)
 
