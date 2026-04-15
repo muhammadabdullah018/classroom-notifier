@@ -535,9 +535,7 @@ def check_announcements():
 
                 seen_announcements.add(ann_id)
 
-                text = item.get("text", "No content.")
-                if len(text) > 300:
-                    text = text[:297] + "..."
+                text = (item.get("text", "")[:297] + "...") if len(item.get("text", "")) > 300 else item.get("text", "No content.")
 
                 posted_by = item.get("creatorUserId", "Unknown")
 
